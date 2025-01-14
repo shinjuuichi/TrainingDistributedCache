@@ -34,12 +34,12 @@ namespace api.Controllers
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> Add([FromBody] Category category)
+        public async Task<IActionResult> Add([FromBody] string cateName)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var newCategory = new Category { Name = cateName };
 
-            await _dbContext.Categories.AddAsync(category);
+            await _dbContext.Categories.AddAsync(newCategory);
+
             await _dbContext.SaveChangesAsync();
 
             var categories = await _dbContext.Categories.ToListAsync();
@@ -49,16 +49,13 @@ namespace api.Controllers
         }
 
         [HttpPut("update/{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Category updatedCategory)
+        public async Task<IActionResult> Update(int id, [FromBody] string cateName)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var category = await _dbContext.Categories.FindAsync(id);
             if (category == null)
                 return NotFound();
 
-            category.Name = updatedCategory.Name;
+            category.Name = cateName;
 
             _dbContext.Categories.Update(category);
             await _dbContext.SaveChangesAsync();

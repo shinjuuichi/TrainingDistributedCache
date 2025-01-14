@@ -3,6 +3,7 @@ using api.Cache;
 using api.Data;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
+using api.NewFolder;
 
 namespace api.Controllers
 {
@@ -34,12 +35,22 @@ namespace api.Controllers
         }
 
         [HttpPost("add")]
-        public async Task<IActionResult> Add([FromBody] Product product)
+        public async Task<IActionResult> Add([FromBody] ProductDTO product)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var cate = await _dbContext.Categories.FindAsync(product.CategoryId);
+            if (cate == null)
+            {
+                throw new Exception("Not found");
+            }
+            var newProduct = new Product
+            {
+                Name = product.Name,
+                Price = product.Price,
+                Quantity = product.Quantity,
+                Category = cate
+            };
 
-            await _dbContext.Products.AddAsync(product);
+            await _dbContext.Products.AddAsync(newProduct);
             await _dbContext.SaveChangesAsync();
 
             var products = await _dbContext.Products.Include(p => p.Category).ToListAsync();
@@ -49,19 +60,21 @@ namespace api.Controllers
         }
 
         [HttpPut("update/{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Product updatedProduct)
+        public async Task<IActionResult> Update(int id, [FromBody] ProductDTO updatedProduct)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var product = await _dbContext.Products.FindAsync(id);
             if (product == null)
                 return NotFound();
+            var cate = await _dbContext.Categories.FindAsync(updatedProduct.CategoryId);
+            if(cate == null)
+            {
+                throw new Exception("Nhu con ca");
+            }
 
             product.Name = updatedProduct.Name;
             product.Price = updatedProduct.Price;
             product.Quantity = updatedProduct.Quantity;
-            product.Category = updatedProduct.Category;
+            product.Category = cate;
 
             _dbContext.Products.Update(product);
             await _dbContext.SaveChangesAsync();
