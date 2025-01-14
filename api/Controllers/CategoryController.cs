@@ -23,12 +23,12 @@ namespace api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var categories = _cacheService.GetData<List<Category>>(CacheKey);
-            if (categories == null)
-            {
-                categories = await _dbContext.Categories.ToListAsync();
-                _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
-            }
+            //var categories = _cacheService.GetData<List<Category>>(CacheKey);
+            //if (categories == null)
+            //{
+               var categories = await _dbContext.Categories.ToListAsync();
+                //_cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+            //}
 
             return Ok(categories);
         }
