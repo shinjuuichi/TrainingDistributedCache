@@ -27,8 +27,8 @@ namespace api.Controllers
             if (categories == null)
             {
                 categories = await _dbContext.Categories.ToListAsync();
-            _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
-        }
+                _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+            }
 
             return Ok(categories);
         }
