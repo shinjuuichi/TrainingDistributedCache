@@ -7,7 +7,7 @@ namespace api.Data
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Data Source=localhost,1433;Initial Catalog=Cache-Product;Integrated Security=True;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer("Server=localhost,1433;Database=CacheProduct;User Id=sa;Password=Shinjuuichidesu@11;TrustServerCertificate=True");
         }
 
         public DbSet<Category> Categories { get; set; }
