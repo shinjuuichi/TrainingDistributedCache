@@ -1,12 +1,10 @@
-using api.Cache;
 using API;
 var builder = WebApplication.CreateBuilder(args);
 
 var apiPolicy = "cache";
 
-builder.Services.AddInfrastructureService();
+builder.Services.AddInfrastructureService(builder.Configuration);
 builder.Services.AddWebAPIService();
-builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(apiPolicy, policy =>

@@ -3,11 +3,11 @@ using api.Models;
 
 namespace api.Data
 {
-    public class ApplicationDbContext() : DbContext
+    public class ApplicationDbContext(IConfiguration _configuration) : DbContext
     {
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=localhost,1433;Database=CacheProduct;User Id=sa;Password=Shinjuuichidesu@11;TrustServerCertificate=True");
+            optionsBuilder.UseSqlServer(_configuration.GetConnectionString("SqlServer"));
         }
 
         public DbSet<Category> Categories { get; set; }

@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using api.Cache;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using api.Data;
 using api.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace api.Controllers
 {
@@ -11,24 +12,27 @@ namespace api.Controllers
     public class CategoryController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
-        private readonly ICacheService _cacheService;
+        private readonly IDistributedCache _cache;
         private const string CacheKey = "categories";
 
-        public CategoryController(ApplicationDbContext dbContext, ICacheService cacheService)
+        public CategoryController(ApplicationDbContext dbContext, IDistributedCache cache)
         {
             _dbContext = dbContext;
-            _cacheService = cacheService;
+            _cache = cache;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var categories = _cacheService.GetData<List<Category>>(CacheKey);
-            if (categories == null)
+            var cachedData = await _cache.GetStringAsync(CacheKey);
+            if (!string.IsNullOrEmpty(cachedData))
             {
-                categories = await _dbContext.Categories.ToListAsync();
-                _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+                var cachedCategories = JsonSerializer.Deserialize<List<Category>>(cachedData);
+                return Ok(cachedCategories);
             }
+
+            var categories = await _dbContext.Categories.ToListAsync();
+            await RefreshCache(categories);
 
             return Ok(categories);
         }
@@ -37,15 +41,13 @@ namespace api.Controllers
         public async Task<IActionResult> Add([FromBody] string cateName)
         {
             var newCategory = new Category { Name = cateName };
-
             await _dbContext.Categories.AddAsync(newCategory);
-
             await _dbContext.SaveChangesAsync();
 
             var categories = await _dbContext.Categories.ToListAsync();
-            _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+            await RefreshCache(categories);
 
-            return Ok(new { data = categories });
+            return Ok(categories);
         }
 
         [HttpPut("update/{id}")]
@@ -56,14 +58,13 @@ namespace api.Controllers
                 return NotFound();
 
             category.Name = cateName;
-
             _dbContext.Categories.Update(category);
             await _dbContext.SaveChangesAsync();
 
             var categories = await _dbContext.Categories.ToListAsync();
-            _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+            await RefreshCache(categories);
 
-            return Ok(new { data = categories });
+            return Ok(categories);
         }
 
         [HttpDelete("delete/{id}")]
@@ -77,16 +78,27 @@ namespace api.Controllers
             await _dbContext.SaveChangesAsync();
 
             var categories = await _dbContext.Categories.ToListAsync();
-            _cacheService.SetData(CacheKey, categories, DateTimeOffset.Now.AddMinutes(10));
+            await RefreshCache(categories);
 
             return Ok(new { success = true, data = categories });
         }
 
-        [HttpDelete("remove-cache")]
-        public IActionResult ClearCache()
+        [HttpPost("refresh-cache")]
+        public async Task<IActionResult> RefreshCacheManually()
         {
-            var result = _cacheService.RemoveData(CacheKey);
-            return Ok(new { success = result });
+            var categories = await _dbContext.Categories.ToListAsync();
+            await RefreshCache(categories);
+
+            return Ok(new { success = true, data = categories });
+        }
+
+        private async Task RefreshCache(List<Category> categories)
+        {
+            var serializedData = JsonSerializer.Serialize(categories);
+            await _cache.SetStringAsync(CacheKey, serializedData, new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
+            });
         }
     }
 }

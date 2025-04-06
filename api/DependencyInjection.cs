@@ -1,13 +1,22 @@
-﻿using api.Data;
+﻿using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using api.Data;
 
 namespace API
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructureService(this IServiceCollection services)
+        public static IServiceCollection AddInfrastructureService(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<ApplicationDbContext>();
-            services.AddSignalR();
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration.GetConnectionString("RedisConnection");
+                options.InstanceName = "RedisCache_";
+            });
 
             return services;
         }
